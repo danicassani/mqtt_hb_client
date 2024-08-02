@@ -1,5 +1,7 @@
 import paho.mqtt.client as mqtt
 import time
+from datetime import datetime
+import psutil
 
 def on_connect(mqttc, obj, flags, reason_code, properties):
     print("reason_code: " + str(reason_code))
@@ -27,7 +29,20 @@ mqttc.connect("localhost", 1883, 60)
 
 mqttc.loop_start()
 
+msg_template = {
+    "status": "",
+    "datetime": "",
+    "cpu_usage": "",
+    "ram_usage": "",
+    "nas_usage": ""
+}
+
 while True:
-    infot = mqttc.publish("heartbeat", "boom-boom", qos=2)
+    new_message = msg_template
+    new_message["datetime"] = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+    new_message["cpu_usage"] = psutil.cpu_percent()
+    new_message["ram_usage"] = psutil.virtual_memory().percent
+    new_message["nas_usage"] = psutil.disk_usage('/mnt/nas').percent
+    infot = mqttc.publish("raspberry/monitoring", str(new_message), qos=2)
     infot.wait_for_publish()
     time.sleep(5)
